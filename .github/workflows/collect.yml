@@ -1,0 +1,47 @@
+name: Controlled product collection
+
+on:
+  schedule:
+    # GitHub Actions uses UTC; 01:00 UTC is 09:00 in Taiwan.
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      max_products:
+        description: Number of products to collect (max 20)
+        required: true
+        default: "10"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pchome-product-collection
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+        env:
+          PYTHONPATH: src
+      - name: Collect public product snapshots
+        run: python -m pickleball_tracker.cli --live --max-products ${{ github.event.inputs.max_products || '10' }}
+        env:
+          PYTHONPATH: src
+      - name: Commit updated SQLite database
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/tracker.db
+          if git diff --cached --quiet; then
+            echo "No new snapshots to commit."
+          else
+            git commit -m "data: collect product price snapshots"
+            git push
+          fi
