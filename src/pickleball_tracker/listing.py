@@ -1,9 +1,11 @@
 import html as html_module
 import re
+from collections.abc import Iterable
 
 
-def parse_product_links(html: str, target_term: str) -> list[tuple[str, str]]:
-    """Return distinct PChome product links whose visible title contains target_term."""
+def parse_product_links(html: str, target_terms: str | Iterable[str]) -> list[tuple[str, str]]:
+    """Return distinct PChome product links whose visible title contains a configured product term."""
+    terms = (target_terms,) if isinstance(target_terms, str) else tuple(target_terms)
     matches = re.finditer(
         r'<a\s+href=["\'](?P<href>/prod/(?P<id>[A-Z0-9-]+))["\'][^>]*>(?P<title>.*?)</a>',
         html,
@@ -15,7 +17,7 @@ def parse_product_links(html: str, target_term: str) -> list[tuple[str, str]]:
 
     def add_link(product_id: str, title: str) -> None:
         if (
-            target_term in title
+            any(term in title for term in terms)
             and not any(marker in title for marker in accessory_markers)
             and product_id not in seen
         ):

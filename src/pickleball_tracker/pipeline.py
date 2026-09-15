@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Callable
 
 from .database import TrackerDatabase
+from .listing import parse_product_links
 from .parser import parse_product_html
 from .quality import validate_snapshot
 
@@ -12,6 +13,28 @@ class CollectionResult:
     stored_count: int
     invalid_count: int
     fetch_error_count: int
+
+
+def select_distinct_product_links(
+    queries: list[str],
+    fetch_listing: Callable[[str], str],
+    maximum_products: int,
+    product_terms: tuple[str, ...] | None = None,
+) -> list[tuple[str, str, str]]:
+    """Return query-tagged product links, preserving query priority and a global cap."""
+    selected: list[tuple[str, str, str]] = []
+    seen_product_ids: set[str] = set()
+    title_terms = product_terms or tuple(queries)
+    listings = [(query, parse_product_links(fetch_listing(query), title_terms)) for query in queries]
+    for query, product_links in listings:
+        for product_id, url in product_links:
+            if product_id in seen_product_ids:
+                continue
+            selected.append((query, product_id, url))
+            seen_product_ids.add(product_id)
+            if len(selected) >= maximum_products:
+                return selected
+    return selected
 
 
 def collect_products(

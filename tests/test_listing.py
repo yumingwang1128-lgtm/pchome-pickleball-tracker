@@ -44,3 +44,13 @@ class ListingParserTests(unittest.TestCase):
         links = parse_product_links(html, "匹克球拍")
 
         self.assertEqual([], links)
+
+    def test_accepts_any_configured_product_term_for_an_alias_search_result(self):
+        html = '<a href="/prod/DXAFFK-A900TERM01">甲 匹克球拍</a>'
+
+        links = parse_product_links(html, ("匹克球拍", "皮克球拍", "pickleball paddle"))
+
+        self.assertEqual(
+            [("DXAFFK-A900TERM01", "https://24h.pchome.com.tw/prod/DXAFFK-A900TERM01")],
+            links,
+        )
