@@ -39,11 +39,12 @@
 
 ## 5. 排程與維運
 
-- [ ] 建立 GitHub Actions workflow：每日定時執行，並支援手動觸發。
-- [ ] 設定資料庫保存方式；確認 GitHub Actions 的執行環境與 Streamlit 部署環境能讀到同一份更新後資料。
+- [x] 建立 GitHub Actions workflow：每日台灣時間 09:00 定時執行，並支援手動觸發。
+- [x] 設定 GitHub Actions 的資料庫保存方式：成功收集後提交更新的 `data/tracker.db` 至預設分支。
+- [ ] 確認 Streamlit 部署環境能讀到 GitHub Actions 更新後的同一份資料庫。
 - [ ] 將 Firecrawl 或其他服務憑證放入 GitHub Secrets，不寫入程式碼、資料庫或日誌。
-- [ ] 在 workflow 中執行測試與品質檢查；失敗時保留足以除錯的非敏感日誌。
-- [ ] 驗收：手動觸發一次成功，下一次執行能累積新快照而非覆蓋歷史。
+- [x] 在 workflow 中執行測試與既有資料品質檢查；失敗時保留足以除錯的非敏感日誌。
+- [x] 驗收：手動觸發一次成功，下一次執行能累積新快照而非覆蓋歷史。
 
 ## 6. Streamlit 儀表板
 
