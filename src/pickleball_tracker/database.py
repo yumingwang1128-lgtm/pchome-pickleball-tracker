@@ -39,8 +39,87 @@ class TrackerDatabase:
                 );
                 CREATE INDEX IF NOT EXISTS idx_snapshots_observed_at
                     ON price_snapshots(observed_at);
+                CREATE TABLE IF NOT EXISTS crawl_runs (
+                    run_id TEXT PRIMARY KEY,
+                    started_at TEXT NOT NULL,
+                    finished_at TEXT,
+                    selected_count INTEGER NOT NULL DEFAULT 0,
+                    stored_count INTEGER NOT NULL DEFAULT 0,
+                    invalid_count INTEGER NOT NULL DEFAULT 0,
+                    fetch_error_count INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL CHECK(status IN (
+                        'running', 'completed', 'completed_with_errors', 'failed'
+                    ))
+                );
+                CREATE INDEX IF NOT EXISTS idx_crawl_runs_started_at
+                    ON crawl_runs(started_at);
                 """
             )
+
+    def start_crawl_run(self, run_id: str, started_at: datetime) -> None:
+        with closing(self._connect()) as connection, connection:
+            connection.execute(
+                """
+                INSERT INTO crawl_runs(run_id, started_at, status)
+                VALUES (?, ?, 'running')
+                """,
+                (run_id, started_at.isoformat()),
+            )
+
+    def finish_crawl_run(
+        self,
+        run_id: str,
+        finished_at: datetime,
+        *,
+        selected_count: int,
+        stored_count: int,
+        invalid_count: int,
+        fetch_error_count: int,
+        status: str,
+    ) -> None:
+        with closing(self._connect()) as connection, connection:
+            connection.execute(
+                """
+                UPDATE crawl_runs
+                SET finished_at = ?, selected_count = ?, stored_count = ?, invalid_count = ?,
+                    fetch_error_count = ?, status = ?
+                WHERE run_id = ?
+                """,
+                (
+                    finished_at.isoformat(),
+                    selected_count,
+                    stored_count,
+                    invalid_count,
+                    fetch_error_count,
+                    status,
+                    run_id,
+                ),
+            )
+
+    def latest_crawl_run(self) -> dict[str, str | int | None] | None:
+        with closing(self._connect()) as connection:
+            row = connection.execute(
+                """
+                SELECT run_id, started_at, finished_at, selected_count, stored_count,
+                       invalid_count, fetch_error_count, status
+                FROM crawl_runs
+                ORDER BY started_at DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        if row is None:
+            return None
+        columns = (
+            "run_id",
+            "started_at",
+            "finished_at",
+            "selected_count",
+            "stored_count",
+            "invalid_count",
+            "fetch_error_count",
+            "status",
+        )
+        return dict(zip(columns, row))
 
     def store_snapshot(self, snapshot: ProductSnapshot, observed_at: datetime) -> None:
         timestamp = observed_at.isoformat()

@@ -1,7 +1,9 @@
 import argparse
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 from urllib.parse import urlencode
+from uuid import uuid4
 
 from .database import TrackerDatabase
 from .pipeline import CollectionResult, collect_products, select_distinct_product_links
@@ -12,6 +14,67 @@ DEFAULT_QUERIES = ("匹克球拍", "皮克球拍", "pickleball paddle")
 
 def listing_url_for_query(query: str) -> str:
     return f"https://24h.pchome.com.tw/search/?{urlencode({'q': query})}"
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def run_collection(
+    *,
+    database: TrackerDatabase,
+    queries: tuple[str, ...],
+    fetch_listing: Callable[[str], str],
+    fetch_product: Callable[[str], str],
+    maximum_products: int,
+    clock: Callable[[], datetime] = utc_now,
+    run_id: str | None = None,
+) -> CollectionResult:
+    """Collect one scheduled batch and persist its diagnostic summary."""
+    run_id = run_id or uuid4().hex
+    started_at = clock()
+    database.start_crawl_run(run_id, started_at)
+    selected_count = 0
+    totals = CollectionResult(0, 0, 0)
+    try:
+        selected = select_distinct_product_links(queries, fetch_listing, maximum_products)
+        selected_count = len(selected)
+        for query, product_id, url in selected:
+            result = collect_products(
+                database=database,
+                product_links=[(product_id, url)],
+                query=query,
+                fetch_html=fetch_product,
+                observed_at=started_at,
+            )
+            totals = CollectionResult(
+                totals.stored_count + result.stored_count,
+                totals.invalid_count + result.invalid_count,
+                totals.fetch_error_count + result.fetch_error_count,
+            )
+    except Exception:
+        database.finish_crawl_run(
+            run_id,
+            clock(),
+            selected_count=selected_count,
+            stored_count=totals.stored_count,
+            invalid_count=totals.invalid_count,
+            fetch_error_count=totals.fetch_error_count,
+            status="failed",
+        )
+        raise
+
+    status = "completed" if totals.fetch_error_count == 0 else "completed_with_errors"
+    database.finish_crawl_run(
+        run_id,
+        clock(),
+        selected_count=selected_count,
+        stored_count=totals.stored_count,
+        invalid_count=totals.invalid_count,
+        fetch_error_count=totals.fetch_error_count,
+        status=status,
+    )
+    return totals
 
 
 def main() -> int:
@@ -36,25 +99,18 @@ def main() -> int:
     def fetch_listing(query: str) -> str:
         return source.fetch(args.listing_url or listing_url_for_query(query))
 
-    selected = select_distinct_product_links(queries, fetch_listing, args.max_products)
-    totals = CollectionResult(0, 0, 0)
-    observed_at = datetime.now(timezone.utc)
-    for query, product_id, url in selected:
-        result = collect_products(
-            database=database,
-            product_links=[(product_id, url)],
-            query=query,
-            fetch_html=source.fetch,
-            observed_at=observed_at,
-        )
-        totals = CollectionResult(
-            totals.stored_count + result.stored_count,
-            totals.invalid_count + result.invalid_count,
-            totals.fetch_error_count + result.fetch_error_count,
-        )
+    totals = run_collection(
+        database=database,
+        queries=queries,
+        fetch_listing=fetch_listing,
+        fetch_product=source.fetch,
+        maximum_products=args.max_products,
+    )
+    latest_run = database.latest_crawl_run()
+    selected_count = latest_run["selected_count"] if latest_run is not None else 0
     print(
         f"stored={totals.stored_count} invalid={totals.invalid_count} "
-        f"fetch_errors={totals.fetch_error_count} selected={len(selected)}"
+        f"fetch_errors={totals.fetch_error_count} selected={selected_count}"
     )
     return 0 if totals.fetch_error_count == 0 else 1
 
