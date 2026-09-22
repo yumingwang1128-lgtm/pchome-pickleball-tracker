@@ -5,6 +5,14 @@ from contextlib import closing
 import pandas as pd
 
 
+MISSING_BRAND_LABEL = "未提供"
+
+
+def brand_filter_options(snapshots: pd.DataFrame) -> list[str]:
+    """Return display-ready brand options without hiding missing public data."""
+    return sorted(snapshots["brand"].fillna(MISSING_BRAND_LABEL).unique())
+
+
 def load_snapshots(database_path: Path) -> pd.DataFrame:
     """Load dashboard fields from the tracker database in chronological order."""
     with closing(sqlite3.connect(database_path)) as connection:
@@ -42,7 +50,9 @@ def filter_snapshots(
         & (snapshots["current_price"] <= maximum_price)
     ]
     if brands:
-        filtered = filtered[filtered["brand"].isin(brands)]
+        filtered = filtered[
+            filtered["brand"].fillna(MISSING_BRAND_LABEL).isin(brands)
+        ]
     return filtered.copy()
 
 

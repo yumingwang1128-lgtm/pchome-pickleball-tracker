@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1] / "src"))
 
 from pickleball_tracker.dashboard import (
+    brand_filter_options,
     count_new_products,
     filter_snapshots,
     load_snapshots,
@@ -62,6 +63,34 @@ class DashboardDataTests(unittest.TestCase):
             self.assertEqual(
                 "https://24h.pchome.com.tw/prod/PADDLE-TWO",
                 filtered.iloc[0]["url"],
+            )
+
+    def test_includes_missing_brands_in_brand_filter_options(self):
+        """The default dashboard view must not hide products whose public brand is absent."""
+        with tempfile.TemporaryDirectory() as directory:
+            database = TrackerDatabase(Path(directory) / "tracker.db")
+            database.initialize()
+            database.store_snapshot(
+                self._snapshot("PADDLE-ONE", "Alpha 球拍", "Alpha", 1000),
+                datetime(2026, 9, 20, tzinfo=timezone.utc),
+            )
+            database.store_snapshot(
+                self._snapshot("PADDLE-TWO", "未標品牌球拍", None, 2000),
+                datetime(2026, 9, 20, tzinfo=timezone.utc),
+            )
+            snapshots = load_snapshots(Path(directory) / "tracker.db")
+
+            self.assertEqual(["Alpha", "未提供"], brand_filter_options(snapshots))
+            self.assertEqual(
+                ["未標品牌球拍"],
+                filter_snapshots(
+                    snapshots,
+                    start_date="2026-09-20",
+                    end_date="2026-09-20",
+                    brands=["未提供"],
+                    minimum_price=0,
+                    maximum_price=9999,
+                )["name"].tolist(),
             )
 
     def test_summarizes_latest_prices_without_counting_old_snapshots_twice(self):

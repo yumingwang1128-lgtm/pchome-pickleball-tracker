@@ -6,6 +6,7 @@ import streamlit as st
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from pickleball_tracker.dashboard import (  # noqa: E402
+    brand_filter_options,
     count_new_products,
     filter_snapshots,
     load_snapshots,
@@ -34,7 +35,7 @@ minimum_date = snapshots["observed_at"].min().date()
 maximum_date = snapshots["observed_at"].max().date()
 minimum_price = int(snapshots["current_price"].min())
 maximum_price = int(snapshots["current_price"].max())
-brand_options = sorted(snapshots["brand"].dropna().unique())
+brand_options = brand_filter_options(snapshots)
 
 with st.sidebar:
     st.header("篩選條件")
