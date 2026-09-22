@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 import sqlite3
 from contextlib import closing
@@ -21,6 +22,12 @@ def localize_for_taipei_display(snapshots: pd.DataFrame) -> pd.DataFrame:
         TAIPEI_TIMEZONE
     )
     return localized
+
+
+def format_taipei_date_label(timestamp: datetime | pd.Timestamp) -> str:
+    """Format an instant as an unambiguous Traditional Chinese UTC+8 date."""
+    localized = pd.Timestamp(timestamp).tz_convert(TAIPEI_TIMEZONE)
+    return localized.strftime("%Y年%m月%d日")
 
 
 def load_snapshots(database_path: Path) -> pd.DataFrame:

@@ -10,6 +10,7 @@ from pickleball_tracker.dashboard import (
     brand_filter_options,
     count_new_products,
     filter_snapshots,
+    format_taipei_date_label,
     load_snapshots,
     localize_for_taipei_display,
     price_band_distribution,
@@ -134,6 +135,12 @@ class DashboardDataTests(unittest.TestCase):
             )
 
             self.assertEqual(["Alpha 球拍"], filtered["name"].tolist())
+
+    def test_formats_taipei_dates_with_traditional_chinese_labels(self):
+        """Chart date labels must not fall back to the browser's English locale."""
+        timestamp = datetime(2026, 9, 20, 16, 30, tzinfo=timezone.utc)
+
+        self.assertEqual("2026年09月21日", format_taipei_date_label(timestamp))
 
     def test_summarizes_latest_prices_without_counting_old_snapshots_twice(self):
         """KPI prices must use the latest snapshot per product, not every historical row."""

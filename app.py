@@ -10,6 +10,7 @@ from pickleball_tracker.dashboard import (  # noqa: E402
     brand_filter_options,
     count_new_products,
     filter_snapshots,
+    format_taipei_date_label,
     localize_for_taipei_display,
     load_snapshots,
     price_band_distribution,
@@ -89,8 +90,12 @@ col4.metric("期間內新出現商品數（項）", new_product_count)
 
 st.subheader("每日價格中位數")
 daily_prices = (
-    display_filtered.assign(observed_date=display_filtered["observed_at_taipei"].dt.date)
-    .groupby("observed_date")["current_price"]
+    display_filtered.assign(
+        observed_date_label=display_filtered["observed_at_taipei"].map(
+            format_taipei_date_label
+        )
+    )
+    .groupby("observed_date_label")["current_price"]
     .median()
     .reset_index()
 )
@@ -98,10 +103,10 @@ st.altair_chart(
     alt.Chart(daily_prices)
     .mark_line(point=True)
     .encode(
-        x=alt.X("observed_date:T", title="擷取日期（UTC+8）"),
+        x=alt.X("observed_date_label:N", title="擷取日期（UTC+8）", sort=None),
         y=alt.Y("current_price:Q", title="中位數價格（新臺幣）"),
         tooltip=[
-            alt.Tooltip("observed_date:T", title="擷取日期（UTC+8）"),
+            alt.Tooltip("observed_date_label:N", title="擷取日期（UTC+8）"),
             alt.Tooltip("current_price:Q", title="中位數價格（新臺幣）", format=",d"),
         ],
     )
