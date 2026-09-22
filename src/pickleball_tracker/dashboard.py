@@ -100,3 +100,10 @@ def price_change_rankings(snapshots: pd.DataFrame) -> pd.DataFrame:
         changes["price_change"] / changes["first_price"] * 100
     ).round(1)
     return changes[changes["price_change"] < 0].sort_values("price_change").reset_index(drop=True)
+
+
+def price_band_distribution(snapshots: pd.DataFrame, bands: int = 6) -> pd.Series:
+    """Return chart-safe, human-readable price-band counts."""
+    distribution = pd.cut(snapshots["current_price"], bins=bands).value_counts().sort_index()
+    distribution.index = distribution.index.map(str)
+    return distribution

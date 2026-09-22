@@ -10,6 +10,7 @@ from pickleball_tracker.dashboard import (
     count_new_products,
     filter_snapshots,
     load_snapshots,
+    price_band_distribution,
     price_change_rankings,
     summarize_snapshots,
 )
@@ -114,3 +115,24 @@ class DashboardDataTests(unittest.TestCase):
             self.assertEqual(["Alpha 球拍"], changes["name"].tolist())
             self.assertEqual([-500], changes["price_change"].tolist())
             self.assertEqual([-25.0], changes["price_change_percent"].tolist())
+
+    def test_price_band_distribution_uses_plain_text_labels_for_chart_compatibility(self):
+        """Altair charts cannot serialize pandas IntervalIndex labels on Streamlit Cloud."""
+        with tempfile.TemporaryDirectory() as directory:
+            database = TrackerDatabase(Path(directory) / "tracker.db")
+            database.initialize()
+            database.store_snapshot(
+                self._snapshot("PADDLE-ONE", "Alpha 球拍", "Alpha", 1000),
+                datetime(2026, 9, 20, tzinfo=timezone.utc),
+            )
+            database.store_snapshot(
+                self._snapshot("PADDLE-TWO", "Beta 球拍", "Beta", 3000),
+                datetime(2026, 9, 21, tzinfo=timezone.utc),
+            )
+
+            distribution = price_band_distribution(
+                load_snapshots(Path(directory) / "tracker.db"), bands=2
+            )
+
+            self.assertTrue(all(isinstance(label, str) for label in distribution.index))
+            self.assertEqual(2, distribution.sum())

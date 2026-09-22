@@ -1,7 +1,6 @@
 from pathlib import Path
 import sys
 
-import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -10,6 +9,7 @@ from pickleball_tracker.dashboard import (  # noqa: E402
     count_new_products,
     filter_snapshots,
     load_snapshots,
+    price_band_distribution,
     price_change_rankings,
     summarize_snapshots,
 )
@@ -93,7 +93,7 @@ st.line_chart(daily_prices)
 left, right = st.columns(2)
 with left:
     st.subheader("價格帶分布")
-    price_bands = pd.cut(filtered["current_price"], bins=6).value_counts().sort_index()
+    price_bands = price_band_distribution(filtered)
     st.bar_chart(price_bands)
 with right:
     st.subheader("最新商品的品牌分布")
