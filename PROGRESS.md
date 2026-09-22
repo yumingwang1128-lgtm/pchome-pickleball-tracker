@@ -9,7 +9,7 @@
 | 平台 | PChome 公開商品分類／商品頁 |
 | 核心技術 | Python、SQLite、GitHub Actions、pandas、Streamlit |
 | GitHub repo | [pchome-pickleball-tracker](https://github.com/yumingwang1128-lgtm/pchome-pickleball-tracker)（私有） |
-| 目前狀態 | 每日收集、SQLite 歷史保存與 Streamlit Community Cloud 部署均已啟用；待確認雲端會隨 GitHub Actions 的資料庫提交更新。 |
+| 目前狀態 | 每日收集、SQLite 歷史保存與 Streamlit Community Cloud 部署均已啟用；雲端已驗證讀到最新資料庫提交。 |
 | 最後更新 | 2026-09-22 |
 
 ## 最新執行紀錄
@@ -24,6 +24,7 @@
 | 2026-09-22 | Dashboard 資料品質檢查 | 必要欄位、網址、非負價格、原價不低於售價與同時間重複快照均為 0 筆異常；資料範圍仍僅 13 天。 |
 | 2026-09-22 | MVP Dashboard 與部署 | 完成篩選、KPI、圖表、降價排行、最新快照表與資料限制提示；使用者已確認 Streamlit Community Cloud 可正常開啟。 |
 | 2026-09-22 | Dashboard 資料完整性修正 | 品牌篩選新增「未提供」選項，預設不再排除公開頁面沒有品牌欄位的商品；已以單元測試覆蓋。 |
+| 2026-09-22 | 雲端 Dashboard 驗收 | 已實測雲端首頁與篩選：顯示 90 筆快照、40 個商品，且「未提供」品牌商品已納入預設統計。 |
 | 每日 09:00（台灣時間） | GitHub Actions 排程 | 執行測試、受限收集最多 10 項商品；SQLite 有變動時自動提交回 `main`。 |
 
 ## 已確認的決策
@@ -44,7 +45,7 @@
 | M1：單次／別名擷取 | 完成 | 三個搜尋別名均可讀取；以商品 ID 去重後已收集 14 個商品、20 筆快照。 |
 | M2：歷史資料庫 | 完成 | SQLite 已保存 40 個商品、90 筆快照，並已加入 `crawl_runs` 執行紀錄結構。 |
 | M3：自動化與品質 | 完成（基礎版） | 每日排程、手動觸發、單元測試、基本資料驗證與資料庫回寫均已驗證。 |
-| M4：儀表板與部署 | 進行中 | Dashboard 程式、資料讀取層、單元測試與 Community Cloud 部署已完成；待確認 GitHub Actions 更新資料庫後的雲端同步與完整展示驗收。 |
+| M4：儀表板與部署 | 完成（待行動版展示驗收） | Dashboard 程式、資料讀取層、單元測試與 Community Cloud 部署已完成；雲端已讀到最新資料庫提交並通過桌面版首頁與篩選實測。 |
 | M5：搜尋量驗證 | 未開始 | 尚未取得可重現的台灣搜尋量時間序列。 |
 
 ## 目前風險與下一步
