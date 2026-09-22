@@ -11,6 +11,7 @@ from pickleball_tracker.dashboard import (
     count_new_products,
     filter_snapshots,
     load_snapshots,
+    localize_for_taipei_display,
     price_band_distribution,
     price_change_rankings,
     summarize_snapshots,
@@ -92,6 +93,47 @@ class DashboardDataTests(unittest.TestCase):
                     maximum_price=9999,
                 )["name"].tolist(),
             )
+
+    def test_converts_utc_observation_time_to_taipei_time_for_display(self):
+        """A UTC timestamp must be shown as UTC+8 in the dashboard."""
+        with tempfile.TemporaryDirectory() as directory:
+            database = TrackerDatabase(Path(directory) / "tracker.db")
+            database.initialize()
+            database.store_snapshot(
+                self._snapshot("PADDLE-ONE", "Alpha 球拍", "Alpha", 1000),
+                datetime(2026, 9, 20, 16, 30, tzinfo=timezone.utc),
+            )
+
+            display_snapshots = localize_for_taipei_display(
+                load_snapshots(Path(directory) / "tracker.db")
+            )
+
+            self.assertEqual(
+                "2026-09-21 00:30 +0800",
+                display_snapshots.iloc[0]["observed_at_taipei"].strftime("%Y-%m-%d %H:%M %z"),
+            )
+
+    def test_filters_by_taipei_calendar_date(self):
+        """A snapshot shortly after midnight in Taipei belongs to that local date."""
+        with tempfile.TemporaryDirectory() as directory:
+            database = TrackerDatabase(Path(directory) / "tracker.db")
+            database.initialize()
+            database.store_snapshot(
+                self._snapshot("PADDLE-ONE", "Alpha 球拍", "Alpha", 1000),
+                datetime(2026, 9, 20, 16, 30, tzinfo=timezone.utc),
+            )
+            snapshots = load_snapshots(Path(directory) / "tracker.db")
+
+            filtered = filter_snapshots(
+                snapshots,
+                start_date="2026-09-21",
+                end_date="2026-09-21",
+                brands=["Alpha"],
+                minimum_price=0,
+                maximum_price=9999,
+            )
+
+            self.assertEqual(["Alpha 球拍"], filtered["name"].tolist())
 
     def test_summarizes_latest_prices_without_counting_old_snapshots_twice(self):
         """KPI prices must use the latest snapshot per product, not every historical row."""

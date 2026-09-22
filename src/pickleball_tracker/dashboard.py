@@ -6,11 +6,21 @@ import pandas as pd
 
 
 MISSING_BRAND_LABEL = "未提供"
+TAIPEI_TIMEZONE = "Asia/Taipei"
 
 
 def brand_filter_options(snapshots: pd.DataFrame) -> list[str]:
     """Return display-ready brand options without hiding missing public data."""
     return sorted(snapshots["brand"].fillna(MISSING_BRAND_LABEL).unique())
+
+
+def localize_for_taipei_display(snapshots: pd.DataFrame) -> pd.DataFrame:
+    """Add a UTC+8 timestamp column while retaining UTC storage timestamps."""
+    localized = snapshots.copy()
+    localized["observed_at_taipei"] = localized["observed_at"].dt.tz_convert(
+        TAIPEI_TIMEZONE
+    )
+    return localized
 
 
 def load_snapshots(database_path: Path) -> pd.DataFrame:
@@ -41,8 +51,10 @@ def filter_snapshots(
     maximum_price: int,
 ) -> pd.DataFrame:
     """Apply inclusive dashboard filters without changing the original dataset."""
-    start = pd.Timestamp(start_date, tz="UTC")
-    end_exclusive = pd.Timestamp(end_date, tz="UTC") + pd.Timedelta(days=1)
+    start = pd.Timestamp(start_date, tz=TAIPEI_TIMEZONE).tz_convert("UTC")
+    end_exclusive = (
+        pd.Timestamp(end_date, tz=TAIPEI_TIMEZONE) + pd.Timedelta(days=1)
+    ).tz_convert("UTC")
     filtered = snapshots[
         (snapshots["observed_at"] >= start)
         & (snapshots["observed_at"] < end_exclusive)
