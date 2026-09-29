@@ -10,6 +10,7 @@ class WorkflowConfigurationTests(unittest.TestCase):
         self.assertIn('cron: "0 1 * * *"', workflow)
         self.assertIn("contents: write", workflow)
         self.assertIn("concurrency:", workflow)
+        self.assertIn("python -m pip install -r requirements.txt", workflow)
         self.assertIn("PYTHONPATH: src", workflow)
         self.assertIn("github.event.inputs.max_products", workflow)
         self.assertIn("git add data/tracker.db", workflow)
