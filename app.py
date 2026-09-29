@@ -123,8 +123,8 @@ with left:
         alt.Chart(price_band_data)
         .mark_bar()
         .encode(
-            x=alt.X("price_range:N", title="目前售價區間（新臺幣）", sort=None),
-            y=alt.Y("snapshot_count:Q", title="商品快照數（筆）"),
+            x=alt.X("snapshot_count:Q", title="商品快照數（筆）"),
+            y=alt.Y("price_range:N", title="目前售價區間（新臺幣）", sort=None),
             tooltip=[
                 alt.Tooltip("price_range:N", title="目前售價區間（新臺幣）"),
                 alt.Tooltip("snapshot_count:Q", title="商品快照數（筆）"),
@@ -144,8 +144,8 @@ with right:
         alt.Chart(brand_data)
         .mark_bar()
         .encode(
-            x=alt.X("brand:N", title="品牌", sort="-y"),
-            y=alt.Y("product_count:Q", title="商品數（項）"),
+            x=alt.X("product_count:Q", title="商品數（項）"),
+            y=alt.Y("brand:N", title="品牌", sort="-x"),
             tooltip=[
                 alt.Tooltip("brand:N", title="品牌"),
                 alt.Tooltip("product_count:Q", title="商品數（項）"),

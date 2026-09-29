@@ -208,9 +208,36 @@ class DashboardDataTests(unittest.TestCase):
                 datetime(2026, 9, 21, tzinfo=timezone.utc),
             )
 
-            distribution = price_band_distribution(
-                load_snapshots(Path(directory) / "tracker.db"), bands=2
-            )
+            distribution = price_band_distribution(load_snapshots(Path(directory) / "tracker.db"))
 
             self.assertTrue(all(isinstance(label, str) for label in distribution.index))
             self.assertEqual(2, distribution.sum())
+
+    def test_price_band_distribution_uses_fixed_twd_business_ranges(self):
+        """Price bands must be stable and understandable across dashboard filters."""
+        with tempfile.TemporaryDirectory() as directory:
+            database = TrackerDatabase(Path(directory) / "tracker.db")
+            database.initialize()
+            observed_at = datetime(2026, 9, 21, tzinfo=timezone.utc)
+            for product_id, name, brand, price in [
+                ("P500", "低價球拍", "品牌 A", 500),
+                ("P1000", "入門球拍", "品牌 A", 1000),
+                ("P1999", "中階球拍", "品牌 B", 1999),
+                ("P5000", "高階球拍", "品牌 B", 5000),
+            ]:
+                database.store_snapshot(self._snapshot(product_id, name, brand, price), observed_at)
+
+            distribution = price_band_distribution(load_snapshots(Path(directory) / "tracker.db"))
+
+            self.assertEqual(
+                [
+                    "未滿 NT$1,000",
+                    "NT$1,000-1,999",
+                    "NT$2,000-2,999",
+                    "NT$3,000-3,999",
+                    "NT$4,000-4,999",
+                    "NT$5,000 以上",
+                ],
+                distribution.index.tolist(),
+            )
+            self.assertEqual([1, 2, 0, 0, 0, 1], distribution.tolist())

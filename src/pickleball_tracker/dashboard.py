@@ -131,8 +131,19 @@ def price_change_rankings(snapshots: pd.DataFrame) -> pd.DataFrame:
     return changes[changes["price_change"] < 0].sort_values("price_change").reset_index(drop=True)
 
 
-def price_band_distribution(snapshots: pd.DataFrame, bands: int = 6) -> pd.Series:
-    """Return chart-safe, human-readable price-band counts."""
-    distribution = pd.cut(snapshots["current_price"], bins=bands).value_counts().sort_index()
-    distribution.index = distribution.index.map(str)
+def price_band_distribution(snapshots: pd.DataFrame) -> pd.Series:
+    """Return fixed, chart-safe TWD price-band counts."""
+    labels = [
+        "未滿 NT$1,000",
+        "NT$1,000-1,999",
+        "NT$2,000-2,999",
+        "NT$3,000-3,999",
+        "NT$4,000-4,999",
+        "NT$5,000 以上",
+    ]
+    distribution = pd.cut(
+        snapshots["current_price"],
+        bins=[-1, 999, 1999, 2999, 3999, 4999, float("inf")],
+        labels=labels,
+    ).value_counts(sort=False)
     return distribution
